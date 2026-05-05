@@ -30,12 +30,12 @@ final class PhotoCaptured extends CameraGalleryEvent {
   List<Object?> get props => [capturedFile.path];
 }
 
-final class CameraCaptureCancelledEvent extends CameraGalleryEvent {
-  const CameraCaptureCancelledEvent();
+final class CameraCaptureCancelledReceived extends CameraGalleryEvent {
+  const CameraCaptureCancelledReceived();
 }
 
-final class CameraCaptureFailed extends CameraGalleryEvent {
-  const CameraCaptureFailed(this.message);
+final class CameraCaptureFailureReceived extends CameraGalleryEvent {
+  const CameraCaptureFailureReceived(this.message);
 
   final String message;
 
@@ -54,15 +54,6 @@ final class CameraPermissionDeniedReceived extends CameraGalleryEvent {
 
 final class DeletePhotoRequested extends CameraGalleryEvent {
   const DeletePhotoRequested(this.photo);
-
-  final LocalPhoto photo;
-
-  @override
-  List<Object?> get props => [photo];
-}
-
-final class OpenPhotoRequested extends CameraGalleryEvent {
-  const OpenPhotoRequested(this.photo);
 
   final LocalPhoto photo;
 

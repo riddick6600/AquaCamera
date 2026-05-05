@@ -1,14 +1,16 @@
 import 'package:aqua_camera/features/about/presentation/about_app_page.dart';
+import 'package:aqua_camera/features/about/presentation/widgets/about_button.dart';
 import 'package:aqua_camera/features/camera_gallery/bloc/camera_gallery_bloc.dart';
 import 'package:aqua_camera/features/camera_gallery/bloc/camera_gallery_event.dart';
 import 'package:aqua_camera/features/camera_gallery/bloc/camera_gallery_state.dart';
+import 'package:aqua_camera/features/camera_gallery/camera_gallery_constants.dart';
 import 'package:aqua_camera/features/camera_gallery/data/camera_permission_repository.dart';
 import 'package:aqua_camera/features/camera_gallery/data/camera_repository.dart';
 import 'package:aqua_camera/features/camera_gallery/models/local_photo.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/camera_capture_page.dart';
+import 'package:aqua_camera/features/camera_gallery/presentation/dialogs/delete_photo_confirmation_dialog.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/photo_view_page.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/utils/app_resume_waiter.dart';
-import 'package:aqua_camera/features/camera_gallery/presentation/widgets/about_button.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/camera_button.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/gallery_body.dart';
 import 'package:flutter/cupertino.dart';
@@ -68,7 +70,7 @@ class CameraGalleryPage extends StatelessWidget {
       permissionStatus = await permissionRepository.requestCameraPermission();
     } catch (_) {
       bloc.add(
-        const CameraCaptureFailed(
+        const CameraCaptureFailureReceived(
           'Не удалось проверить доступ к камере. Повторите попытку.',
         ),
       );
@@ -113,10 +115,10 @@ class CameraGalleryPage extends StatelessWidget {
       if (result.permissionDenied) {
         bloc.add(CameraPermissionDeniedReceived(result.message));
       } else {
-        bloc.add(CameraCaptureFailed(result.message));
+        bloc.add(CameraCaptureFailureReceived(result.message));
       }
     } else {
-      bloc.add(const CameraCaptureCancelledEvent());
+      bloc.add(const CameraCaptureCancelledReceived());
     }
   }
 
@@ -132,17 +134,16 @@ class CameraGalleryPage extends StatelessWidget {
       await waiter.wait();
     }
 
-    await Future<void>.delayed(const Duration(milliseconds: 450));
+    await Future<void>.delayed(
+      CameraGalleryConstants.permissionDialogSettleDelay,
+    );
   }
 
   void _openPhoto(BuildContext context, LocalPhoto photo) {
-    final bloc = context.read<CameraGalleryBloc>()
-      ..add(OpenPhotoRequested(photo));
-
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BlocProvider.value(
-          value: bloc,
+          value: context.read<CameraGalleryBloc>(),
           child: PhotoViewPage(photo: photo),
         ),
       ),
@@ -156,28 +157,9 @@ class CameraGalleryPage extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, LocalPhoto photo) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Удалить фотографию?'),
-          content: const Text('Файл будет удалён только из AquaCamera.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Отмена'),
-            ),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Удалить'),
-            ),
-          ],
-        );
-      },
-    );
+    final shouldDelete = await showDeletePhotoConfirmationDialog(context);
 
-    if (shouldDelete != true || !context.mounted) {
+    if (!shouldDelete || !context.mounted) {
       return;
     }
 

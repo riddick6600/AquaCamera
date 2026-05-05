@@ -1,3 +1,4 @@
+import 'package:aqua_camera/features/camera_gallery/camera_gallery_constants.dart';
 import 'package:aqua_camera/features/camera_gallery/models/local_photo.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/local_photo_tile.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class LocalPhotoGrid extends StatelessWidget {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: CameraGalleryConstants.gridCrossAxisCount,
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),

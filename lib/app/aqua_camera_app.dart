@@ -21,8 +21,12 @@ class AquaCameraApp extends StatelessWidget {
             storage: context.read<LocalMediaStorage>(),
           ),
         ),
-        RepositoryProvider(create: (_) => CameraRepository()),
-        RepositoryProvider(create: (_) => CameraPermissionRepository()),
+        RepositoryProvider<CameraRepository>(
+          create: (_) => CameraRepositoryImpl(),
+        ),
+        RepositoryProvider<CameraPermissionRepository>(
+          create: (_) => MethodChannelCameraPermissionRepository(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

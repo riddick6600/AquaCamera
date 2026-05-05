@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:aqua_camera/features/camera_gallery/data/async_mutex.dart';
 import 'package:aqua_camera/features/camera_gallery/data/local_media_storage.dart';
 import 'package:aqua_camera/features/camera_gallery/models/local_photo.dart';
 import 'package:camera/camera.dart';
@@ -22,10 +23,11 @@ class LocalGalleryRepository implements CameraGalleryRepository {
 
   final LocalMediaStorage _storage;
   final Uuid _uuid;
+  final AsyncMutex _metadataMutex = AsyncMutex();
 
   @override
   Future<List<LocalPhoto>> loadPhotos() {
-    return _storage.readPhotos();
+    return _metadataMutex.run(_storage.readPhotos);
   }
 
   @override
@@ -33,36 +35,49 @@ class LocalGalleryRepository implements CameraGalleryRepository {
     final id = _uuid.v4();
     final createdAt = DateTime.now();
     final extension = _safeImageExtension(capturedFile.path);
+    final fileName = '$id$extension';
     final storedFile = await _storage.copyCapturedFile(
       sourcePath: capturedFile.path,
-      targetFileName: '$id$extension',
-    );
-    final imageSize = await _readImageSize(storedFile);
-    final photo = LocalPhoto(
-      id: id,
-      filePath: storedFile.path,
-      createdAt: createdAt,
-      sizeBytes: await storedFile.length(),
-      width: imageSize?.width,
-      height: imageSize?.height,
-      source: 'camera',
+      targetFileName: fileName,
     );
 
-    final photos = await _storage.readPhotos();
-    await _storage.writePhotos([photo, ...photos]);
+    try {
+      final imageSize = await _readImageSize(storedFile);
+      final photo = LocalPhoto(
+        id: id,
+        fileName: fileName,
+        filePath: storedFile.path,
+        createdAt: createdAt,
+        sizeBytes: await storedFile.length(),
+        width: imageSize?.width,
+        height: imageSize?.height,
+        source: 'camera',
+      );
 
-    return photo;
+      await _metadataMutex.run(() async {
+        final photos = await _storage.readPhotos();
+        await _storage.writePhotos([photo, ...photos]);
+      });
+
+      return photo;
+    } catch (error) {
+      await _deleteCopiedFileSilently(storedFile.path);
+      rethrow;
+    }
   }
 
   @override
   Future<void> deletePhoto(LocalPhoto photo) async {
-    final photos = await _storage.readPhotos();
-    final updatedPhotos = photos
-        .where((existingPhoto) => existingPhoto.id != photo.id)
-        .toList(growable: false);
+    await _metadataMutex.run(() async {
+      final photos = await _storage.readPhotos();
+      final updatedPhotos = photos
+          .where((existingPhoto) => existingPhoto.id != photo.id)
+          .toList(growable: false);
 
-    await _storage.deletePhotoFile(photo.filePath);
-    await _storage.writePhotos(updatedPhotos);
+      await _storage.writePhotos(updatedPhotos);
+    });
+
+    await _deleteCopiedFileSilently(photo.filePath);
   }
 
   String _safeImageExtension(String filePath) {
@@ -79,8 +94,8 @@ class LocalGalleryRepository implements CameraGalleryRepository {
 
   Future<({int width, int height})?> _readImageSize(File file) async {
     try {
-      final bytes = await file.readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
+      final buffer = await ui.ImmutableBuffer.fromFilePath(file.path);
+      final codec = await ui.instantiateImageCodecFromBuffer(buffer);
       final frame = await codec.getNextFrame();
       final image = frame.image;
       final size = (width: image.width, height: image.height);
@@ -91,6 +106,15 @@ class LocalGalleryRepository implements CameraGalleryRepository {
       return size;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _deleteCopiedFileSilently(String filePath) async {
+    try {
+      await _storage.deletePhotoFileIfExists(filePath);
+    } catch (_) {
+      // Запись в JSON важнее файла-сироты: галерея не должна возвращать уже
+      // удалённое фото из-за ошибки удаления файла на диске.
     }
   }
 }

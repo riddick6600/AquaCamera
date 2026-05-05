@@ -43,12 +43,32 @@ class LocalMediaStorage {
         throw const FormatException('Файл метаданных должен содержать список.');
       }
 
+      final imagesDirectory = await ensureImagesDirectory();
       final photos = <LocalPhoto>[];
+      var shouldRewriteMetadata = false;
       for (final item in decoded) {
-        if (item is Map<String, dynamic>) {
-          photos.add(LocalPhoto.fromJson(item));
-        } else if (item is Map) {
-          photos.add(LocalPhoto.fromJson(Map<String, dynamic>.from(item)));
+        try {
+          late final Map<String, dynamic> json;
+          if (item is Map<String, dynamic>) {
+            json = item;
+          } else if (item is Map) {
+            json = Map<String, dynamic>.from(item);
+          } else {
+            shouldRewriteMetadata = true;
+            continue;
+          }
+
+          shouldRewriteMetadata |=
+              json.containsKey('filePath') && !json.containsKey('fileName');
+          photos.add(
+            LocalPhoto.fromJson(
+              json,
+              imagesDirectoryPath: imagesDirectory.path,
+            ),
+          );
+        } on FormatException {
+          shouldRewriteMetadata = true;
+          continue;
         }
       }
 
@@ -63,7 +83,7 @@ class LocalMediaStorage {
 
       // Если файл был удалён вне приложения, синхронизируем JSON, чтобы UI не
       // показывал битые записи после следующего запуска.
-      if (existingPhotos.length != photos.length) {
+      if (existingPhotos.length != photos.length || shouldRewriteMetadata) {
         await writePhotos(existingPhotos);
       }
 
@@ -109,14 +129,10 @@ class LocalMediaStorage {
     }
   }
 
-  Future<void> deletePhotoFile(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (await file.exists()) {
-        await file.delete();
-      }
-    } catch (error) {
-      throw StorageException('Не удалось удалить файл фотографии.', error);
+  Future<void> deletePhotoFileIfExists(String filePath) async {
+    final file = File(filePath);
+    if (await file.exists()) {
+      await file.delete();
     }
   }
 

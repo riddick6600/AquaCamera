@@ -1,4 +1,5 @@
 import 'package:aqua_camera/features/camera_gallery/data/camera_repository.dart';
+import 'package:aqua_camera/features/camera_gallery/camera_gallery_constants.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/camera_failure_content.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/camera_loading_content.dart';
 import 'package:aqua_camera/features/camera_gallery/presentation/widgets/camera_preview_view.dart';
@@ -104,7 +105,7 @@ class _CameraCapturePageState extends State<CameraCapturePage>
     try {
       _setLoadingMessage('Запускаем камеру...');
       final cameras = await _cameraRepository.loadAvailableCameras().timeout(
-        const Duration(seconds: 8),
+        CameraGalleryConstants.availableCamerasTimeout,
       );
       if (cameras.isEmpty) {
         if (!mounted) {

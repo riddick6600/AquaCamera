@@ -72,6 +72,7 @@ void main() {
 
 final _photo = LocalPhoto(
   id: 'photo-1',
+  fileName: 'photo-1.jpg',
   filePath: '/tmp/photo-1.jpg',
   createdAt: DateTime(2026, 5, 5, 10),
   sizeBytes: 1024,
@@ -81,6 +82,7 @@ final _photo = LocalPhoto(
 
 final _capturedPhoto = LocalPhoto(
   id: 'captured-photo',
+  fileName: 'captured.jpg',
   filePath: '/tmp/captured.jpg',
   createdAt: DateTime(2026, 5, 5, 11),
   sizeBytes: 2048,

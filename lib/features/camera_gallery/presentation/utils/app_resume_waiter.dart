@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aqua_camera/features/camera_gallery/camera_gallery_constants.dart';
 import 'package:flutter/widgets.dart';
 
 class AppResumeWaiter with WidgetsBindingObserver {
@@ -9,7 +10,9 @@ class AppResumeWaiter with WidgetsBindingObserver {
 
   final Completer<void> _completer = Completer<void>();
 
-  Future<void> wait({Duration timeout = const Duration(seconds: 2)}) {
+  Future<void> wait({
+    Duration timeout = CameraGalleryConstants.appResumeTimeout,
+  }) {
     if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
       _complete();
     }

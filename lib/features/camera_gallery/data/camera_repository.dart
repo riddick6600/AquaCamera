@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aqua_camera/features/camera_gallery/camera_gallery_constants.dart';
 import 'package:camera/camera.dart';
 
 sealed class CameraCaptureResult {
@@ -23,11 +24,25 @@ final class CameraCaptureFailure extends CameraCaptureResult {
   final bool permissionDenied;
 }
 
-class CameraRepository {
+abstract interface class CameraRepository {
+  Future<List<CameraDescription>> loadAvailableCameras();
+
+  Future<CameraController> createController(CameraDescription camera);
+
+  Future<XFile> takePicture(CameraController controller);
+
+  bool isPermissionDenied(Object error);
+
+  String messageForError(Object error);
+}
+
+final class CameraRepositoryImpl implements CameraRepository {
+  @override
   Future<List<CameraDescription>> loadAvailableCameras() {
     return availableCameras();
   }
 
+  @override
   Future<CameraController> createController(CameraDescription camera) async {
     final controller = CameraController(
       camera,
@@ -36,7 +51,9 @@ class CameraRepository {
     );
 
     try {
-      await controller.initialize().timeout(const Duration(seconds: 12));
+      await controller.initialize().timeout(
+        CameraGalleryConstants.cameraInitializationTimeout,
+      );
       return controller;
     } catch (_) {
       await controller.dispose();
@@ -44,6 +61,7 @@ class CameraRepository {
     }
   }
 
+  @override
   Future<XFile> takePicture(CameraController controller) {
     if (!controller.value.isInitialized) {
       throw CameraException('CameraNotReady', 'Камера ещё не готова к съёмке.');
@@ -56,6 +74,7 @@ class CameraRepository {
     return controller.takePicture();
   }
 
+  @override
   bool isPermissionDenied(Object error) {
     return error is CameraException &&
         (error.code == 'CameraAccessDenied' ||
@@ -63,6 +82,7 @@ class CameraRepository {
             error.code == 'CameraAccessRestricted');
   }
 
+  @override
   String messageForError(Object error) {
     if (isPermissionDenied(error)) {
       return 'Доступ к камере запрещён. Разрешите доступ в настройках iOS.';

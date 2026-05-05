@@ -13,11 +13,10 @@ class CameraGalleryBloc extends Bloc<CameraGalleryEvent, CameraGalleryState> {
     on<RetryRequested>(_onRetryRequested);
     on<TakePhotoRequested>(_onTakePhotoRequested);
     on<PhotoCaptured>(_onPhotoCaptured);
-    on<CameraCaptureCancelledEvent>(_onCameraCaptureCancelled);
-    on<CameraCaptureFailed>(_onCameraCaptureFailed);
+    on<CameraCaptureCancelledReceived>(_onCameraCaptureCancelled);
+    on<CameraCaptureFailureReceived>(_onCameraCaptureFailed);
     on<CameraPermissionDeniedReceived>(_onCameraPermissionDeniedReceived);
     on<DeletePhotoRequested>(_onDeletePhotoRequested);
-    on<OpenPhotoRequested>(_onOpenPhotoRequested);
   }
 
   final CameraGalleryRepository _galleryRepository;
@@ -68,14 +67,14 @@ class CameraGalleryBloc extends Bloc<CameraGalleryEvent, CameraGalleryState> {
   }
 
   void _onCameraCaptureCancelled(
-    CameraCaptureCancelledEvent event,
+    CameraCaptureCancelledReceived event,
     Emitter<CameraGalleryState> emit,
   ) {
     emit(_stateForPhotos(state.photos));
   }
 
   void _onCameraCaptureFailed(
-    CameraCaptureFailed event,
+    CameraCaptureFailureReceived event,
     Emitter<CameraGalleryState> emit,
   ) {
     emit(CameraGalleryFailure(message: event.message, photos: state.photos));
@@ -111,11 +110,6 @@ class CameraGalleryBloc extends Bloc<CameraGalleryEvent, CameraGalleryState> {
       );
     }
   }
-
-  void _onOpenPhotoRequested(
-    OpenPhotoRequested event,
-    Emitter<CameraGalleryState> emit,
-  ) {}
 
   Future<void> _loadPhotos(Emitter<CameraGalleryState> emit) async {
     final currentPhotos = state.photos;
