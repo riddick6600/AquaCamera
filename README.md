@@ -2,6 +2,8 @@
 
 Тестовое задание "Камера" для Aquafon.
 
+Реализовал: Дерябин Георгий
+
 AquaCamera — Flutter-приложение для iOS, которое делает фотографии через камеру устройства и сохраняет их только во внутреннюю локальную галерею приложения.
 
 ## Возможности
@@ -72,10 +74,4 @@ flutter test
 cd /Users/gd/Projects/AquaCamera
 flutter build ios --release
 xcrun devicectl device install app --device <device_id> build/ios/iphoneos/Runner.app
-```
-
-Для текущего тестового устройства:
-
-```bash
-xcrun devicectl device install app --device 00008110-001868C436DA801E build/ios/iphoneos/Runner.app
 ```
